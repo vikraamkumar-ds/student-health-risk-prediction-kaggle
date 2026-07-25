@@ -1,12 +1,12 @@
 # 🩺 Predicting Student Health Risk — Kaggle Playground Series S6E7
 
-> **A 3-class classification problem (`at-risk` / `unhealthy` / `fit`) on 690k students, scored by balanced accuracy — with a heavily imbalanced target, informative missingness, and a full honest record of what worked and what didn't.**
+> **A 3-class classification problem (`at-risk` / `unhealthy` / `fit`) on 690,088 students, scored by balanced accuracy — with a heavily imbalanced target, informative missingness, and a full honest record of what worked and what didn't.**
 
 <br>
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://python.org)
 [![LightGBM](https://img.shields.io/badge/LightGBM-Model-2E8B57?logo=leaflet)](https://lightgbm.readthedocs.io/)
-[![CatBoost](https://img.shields.io/badge/CatBoost-Model-FFCC00?logo=data%3Aimage%2Fpng)](https://catboost.ai/)
+[![CatBoost](https://img.shields.io/badge/CatBoost-Model-FFCC00)](https://catboost.ai/)
 [![Optuna](https://img.shields.io/badge/Optuna-Tuning-6A5ACD)](https://optuna.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
@@ -14,9 +14,9 @@
 
 ## 📌 The Central Finding
 
-**Best result: 0.95011 balanced accuracy on the public leaderboard** — achieved with a single tuned LightGBM model. Five follow-up techniques (ensembling, feature engineering, pseudo-labeling, alternative missing-value handling) were tried on top of it, and **none produced a reliable improvement.**
+**Best result: 0.95011 balanced accuracy on the public leaderboard** — achieved with a single tuned LightGBM model.
 
-That negative result is the point of this repo: knowing when a technique isn't paying off — and trusting honest out-of-fold validation over wishful thinking — is as much a part of the skill as finding the winning model in the first place.
+Five follow-up techniques (ensembling, feature engineering, pseudo-labeling, alternative missing-value handling) were tried on top of it, and **none produced a reliable improvement**:
 
 | Version | Approach | CV Balanced Accuracy | Public LB | Outcome |
 |---|---|---|---|---|
@@ -29,23 +29,38 @@ That negative result is the point of this repo: knowing when a technique isn't p
 | v7 | Pseudo-labeling (confident test predictions added to training) | 0.94991 vs 0.95012 baseline | not submitted | ❌ Made things worse — reinforced majority class |
 | v8 | Native missing-value handling + prior correction | 0.94985 | 0.94966 | Small CV gain didn't transfer to LB — within noise |
 
+That negative-result pattern is the point of this repo: knowing when a technique isn't paying off — and trusting honest out-of-fold validation over wishful thinking — is as much a part of the skill as finding the winning model in the first place.
+
 ---
 
 ## 🔍 Key Findings
 
 ### What actually moved the needle
 
-1. **Model choice (RF → LightGBM)** — by far the largest single improvement (**+~8.7 points** balanced accuracy).
-2. **Hyperparameter tuning (Optuna)** — a small, real, repeatable gain (~+0.0005–0.0006), confirmed on both CV and leaderboard.
-3. Everything else — ensembling, feature engineering, pseudo-labeling, alternative missing-value handling — **did not beat the tuned LightGBM baseline**, and each was tested honestly via proper out-of-fold validation rather than eyeballed.
+| Lever | Effect |
+|---|---|
+| **Model choice** (RandomForest → LightGBM) | +~8.7 points balanced accuracy — by far the largest single improvement |
+| **Hyperparameter tuning** (Optuna, 20 trials) | +~0.0005–0.0006 — small, real, and repeatable, confirmed on both CV and leaderboard |
+| Ensembling, feature engineering, pseudo-labeling, missing-value strategy | No reliable gain over the tuned LightGBM baseline — each tested honestly via out-of-fold validation, not eyeballed |
 
 ### What the data itself revealed
 
 | Insight | Detail |
 |---|---|
-| Class imbalance dominates the metric | Target is ~86% / 8% / 6% — a majority-only model scores just **0.33** balanced accuracy |
-| Missingness is informative (MNAR) | Which values are missing correlates with the target — especially `sleep_duration`, `stress_level`, `physical_activity_level` |
-| CV tracked the leaderboard closely | Gaps mostly within ±0.001 — local CV could be trusted for decisions instead of "spending" submissions |
+| Class imbalance dominates the metric | Target is ~86% at-risk / 8% unhealthy / 6% fit — a majority-only model scores just **0.33** balanced accuracy |
+| Missingness is informative (MNAR) | *Which* values are missing correlates with the target — especially `sleep_duration`, `stress_level`, `physical_activity_level` |
+| CV tracked the leaderboard closely | Gaps mostly within ±0.001 across every submission — local CV could be trusted for decisions instead of "spending" submissions to check |
+
+### Feature Importance Snapshot
+
+| Rank | Feature | Note |
+|---|---|---|
+| 1 | `bmi` | Strongest single numeric predictor |
+| 2 | `sleep_duration` | Interacts heavily with `stress_level` |
+| 3 | `exercise_duration` | Conditions BMI and heart-rate signals |
+| 4 | `heart_rate` | Moderate on its own; stronger in ratio features |
+| 5 | `calorie_expenditure` | Correlated with `step_count` |
+| — | `gender` | Weakest categorical predictor |
 
 ---
 
@@ -55,31 +70,32 @@ That negative result is the point of this repo: knowing when a technique isn't p
 student-health-risk-kaggle/
 │
 ├── README.md
-├── Student_Health_Risk_Concept_Book.docx
-├── gitignore
+├── Student_Health_Risk_Concept_Book.docx     # Plain-language glossary: what we did & why
+├── LICENSE
+├── .gitignore
 │
 ├── notebooks/
-│   ├── shr-v1-randomforest-baseline.ipynb
-│   ├── shr-v2-lightgbm-baseline.ipynb
-│   ├── shr-v3-lightgbm-optuna-tuned.ipynb          # final submitted model (0.95011 LB)
-│   ├── shr-v4-catboost.ipynb
-│   ├── shr-v5-ensemble-lightgbm-catboost.ipynb
-│   ├── shr-v6-feature-engineering.ipynb
-│   ├── shr-v7-pseudo-labeling.ipynb
-│   └── shr-v8-native-missing-prior-correction.ipynb
+│   ├── v1_randomforest_baseline.ipynb
+│   ├── v2_lightgbm_baseline.ipynb
+│   ├── v3_lightgbm_optuna_tuned.ipynb          # final submitted model (0.95011 LB)
+│   ├── v4_catboost.ipynb
+│   ├── v5_ensemble_lightgbm_catboost.ipynb
+│   ├── v6_feature_engineering.ipynb
+│   ├── v7_pseudo_labeling.ipynb
+│   └── v8_native_missing_prior_correction.ipynb
 │
 └── outputs/
-    ├── shr-v1-submission.csv
-    ├── shr-v2-submission.csv
-    ├── shr-v3-submission.csv                       # best submission (0.95011 LB)
-    ├── shr-v4-submission.csv
-    ├── shr-v5-submission.csv
-    ├── shr-v6-submission.csv
-    ├── shr-v7-submission.csv
-    └── shr-v8-submission.csv
+    ├── v1_submission.csv
+    ├── v2_submission.csv
+    ├── v3_submission.csv                       # best submission (0.95011 LB)
+    ├── v4_submission.csv
+    ├── v5_submission.csv
+    ├── v6_submission.csv
+    ├── v7_submission.csv
+    └── v8_submission.csv
 ```
 
-Each notebook is self-contained and was run on Kaggle against the competition's `train.csv` / `test.csv` (not included here — see the [competition data page](https://www.kaggle.com/competitions/playground-series-s6e7/data) to download).
+> Competition data (`train.csv`, `test.csv`, `sample_submission.csv`) is not included here — download it from the [competition's Data page](https://www.kaggle.com/competitions/playground-series-s6e7/data) and place it wherever your notebook's `DATA_DIR` points to.
 
 ---
 
@@ -87,14 +103,50 @@ Each notebook is self-contained and was run on Kaggle against the competition's 
 
 | Notebook | Description |
 |---|---|
-| `shr-v1-randomforest-baseline.ipynb` | Beginner-friendly starter pipeline — EDA, preprocessing, RandomForest baseline |
-| `shr-v2-lightgbm-baseline.ipynb` | Swaps RF for LightGBM with native categorical handling |
-| `shr-v3-lightgbm-optuna-tuned.ipynb` | Optuna hyperparameter search + 5-fold CV — **best result** |
-| `shr-v4-catboost.ipynb` | CatBoost (GPU), saves OOF + test probabilities for ensembling |
-| `shr-v5-ensemble-lightgbm-catboost.ipynb` | Blends v3 + v4 via OOF-validated weight search |
-| `shr-v6-feature-engineering.ipynb` | Adds missingness flags + ratio/interaction features |
-| `shr-v7-pseudo-labeling.ipynb` | Adds confident test predictions as extra training data |
-| `shr-v8-native-missing-prior-correction.ipynb` | Native NaN handling + class-prior probability correction |
+| `v1_randomforest_baseline.ipynb` | Beginner-friendly starter pipeline — EDA, preprocessing, RandomForest baseline |
+| `v2_lightgbm_baseline.ipynb` | Swaps RandomForest for LightGBM with native categorical handling |
+| `v3_lightgbm_optuna_tuned.ipynb` | Optuna hyperparameter search + 5-fold CV — **best result** |
+| `v4_catboost.ipynb` | CatBoost (GPU), saves OOF + test probabilities for ensembling |
+| `v5_ensemble_lightgbm_catboost.ipynb` | Blends v3 + v4 via OOF-validated weight search |
+| `v6_feature_engineering.ipynb` | Adds missingness flags + ratio/interaction features |
+| `v7_pseudo_labeling.ipynb` | Adds confident test predictions as extra training data |
+| `v8_native_missing_prior_correction.ipynb` | Native NaN handling + class-prior probability correction |
+
+> Notebooks are self-contained and were run on Kaggle. Run them in order to reproduce the full progression, or jump straight to `v3` for the best single result.
+
+---
+
+## 🚀 Reproduce Locally
+
+### 1. Clone the repo
+```bash
+git clone https://github.com/vikraamkumar-ds/student-health-risk-prediction-kaggle.git
+cd student-health-risk-prediction-kaggle
+```
+
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Download the competition data
+Download `train.csv`, `test.csv`, and `sample_submission.csv` from the [competition's Data page](https://www.kaggle.com/competitions/playground-series-s6e7/data) and place them in a `data/` folder.
+
+### 4. Update `DATA_DIR` and run
+Each notebook has a `DATA_DIR` variable near the top — point it at your local `data/` folder, then run all cells top to bottom.
+
+---
+
+## 📦 Requirements
+
+```
+pandas
+numpy
+scikit-learn
+lightgbm
+catboost
+optuna
+```
 
 ---
 
@@ -105,7 +157,15 @@ Each notebook is self-contained and was run on Kaggle against the competition's 
 | Kaggle Competition | [Playground Series — Season 6, Episode 7](https://www.kaggle.com/competitions/playground-series-s6e7) |
 | Kaggle Dataset (OOF/test probability files) | [health-risk-oof-files](https://kaggle.com/datasets/4ae485da4f5c27c7c43cb1450ccb077d5773dc13297d7ef8295137c011995eae) |
 
-The dataset above contains the LightGBM + CatBoost out-of-fold and test probability arrays used in `shr-v5-ensemble-lightgbm-catboost.ipynb` for the blending step.
+The dataset above contains the LightGBM + CatBoost out-of-fold and test probability arrays used in `v5_ensemble_lightgbm_catboost.ipynb` for the blending step.
+
+---
+
+## 📋 What I'd Try Next
+
+- **Conditional modeling on the "rule" features** — community analysis found balanced accuracy on rows with complete `sleep_duration` / `stress_level` / `physical_activity_level` data reaches ~0.97, collapsing toward chance as those go missing. Modeling complete-key and incomplete-key rows separately is a promising, untested direction.
+- **A genuinely different model type for ensembling** — LightGBM and CatBoost turned out to make very similar predictions here; a neural net or linear model might add real diversity.
+- **Exact-value target encoding** for the ordinal categoricals (`stress_level`, `sleep_quality`, `physical_activity_level`), fitted safely inside each CV fold.
 
 ---
 
@@ -125,6 +185,7 @@ The dataset above contains the LightGBM + CatBoost out-of-fold and test probabil
 ## 👤 Author
 
 **Vikram Kumar**
+BS Data Science
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin)](https://www.linkedin.com/in/vikram-kumar-204013263/)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?logo=github)](https://github.com/vikraamkumar-ds)
