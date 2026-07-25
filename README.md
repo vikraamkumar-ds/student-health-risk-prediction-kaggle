@@ -55,6 +55,8 @@ That negative result is the point of this repo: knowing when a technique isn't p
 student-health-risk-kaggle/
 │
 ├── README.md
+├── Student_Health_Risk_Concept_Book.docx
+├── gitignore
 │
 ├── notebooks/
 │   ├── shr-v1-randomforest-baseline.ipynb
