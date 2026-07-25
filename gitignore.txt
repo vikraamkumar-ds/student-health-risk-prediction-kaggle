@@ -1,0 +1,13 @@
+# Data files (download separately from Kaggle - too large for git)
+*.csv
+*.npy
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
