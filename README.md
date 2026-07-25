@@ -14,22 +14,20 @@
 
 ## 📌 The Central Finding
 
-**Best result: 0.95011 balanced accuracy on the public leaderboard** — achieved with a single tuned LightGBM model.
-
-Five follow-up techniques (ensembling, feature engineering, pseudo-labeling, alternative missing-value handling) were tried on top of it, and **none produced a reliable improvement**:
+**Best result: 0.95020 balanced accuracy on the public leaderboard** — from the feature-engineering notebook (v6). The tuned LightGBM baseline (v3, 0.95011) is a very close second, and both are selected as final submissions to hedge against the private leaderboard (the other 80% of test data) ranking them differently.
 
 | Version | Approach | CV Balanced Accuracy | Public LB | Outcome |
 |---|---|---|---|---|
 | v1 | RandomForest baseline | 0.86212 | — | Got something working end-to-end |
 | v2 | LightGBM, native categorical handling | 0.94907 | 0.94979 | Big jump over RF — model choice mattered most |
-| **v3** | **LightGBM + Optuna tuning (20 trials)** | **0.94965** | **0.95011** | **✅ Best result — final submission** |
+| v3 | LightGBM + Optuna tuning (20 trials) | 0.94965 | 0.95011 | Strong, repeatable result — selected as a final submission |
 | v4 | CatBoost (GPU) | 0.94902 | 0.94945 | Comparable to LightGBM, slightly behind |
-| v5 | Ensemble (v3 + v4, OOF-validated blend weight) | 0.94961 | not submitted | No real gain — best blend was ~80% LightGBM |
-| v6 | Feature engineering (ratio/interaction + missingness flags) | 0.94966 | not submitted | No real gain — trees already captured this |
-| v7 | Pseudo-labeling (confident test predictions added to training) | 0.94991 vs 0.95012 baseline | not submitted | ❌ Made things worse — reinforced majority class |
-| v8 | Native missing-value handling + prior correction | 0.94985 | 0.94966 | Small CV gain didn't transfer to LB — within noise |
+| v5 | Ensemble (v3 + v4, OOF-validated blend weight) | 0.94961 | 0.94995 | Small gain over v4 alone, still below v3 |
+| **v6** | **Feature engineering (ratio/interaction + missingness flags)** | **0.94966** | **0.95020** | **✅ Best result — selected as a final submission** |
+| v7 | Pseudo-labeling (confident test predictions added to training) | 0.94991 vs 0.95012 (held-out check) | 0.95000 | Scored well on LB despite a locally-measured drop — see note below |
+| v8 | Native missing-value handling + prior correction | 0.94985 | 0.94966 | Small CV gain didn't hold up on LB |
 
-That negative-result pattern is the point of this repo: knowing when a technique isn't paying off — and trusting honest out-of-fold validation over wishful thinking — is as much a part of the skill as finding the winning model in the first place.
+> **Note on CV vs. leaderboard:** local out-of-fold validation predicted v5/v6/v7 wouldn't beat v3 — the leaderboard disagreed for all three, and v6 ended up on top. All scores here sit within a ~0.0007 band, which is inside the noise range for this competition. This is less "the local testing was wrong" and more a reminder that the public leaderboard is itself computed on only 20% of the test set — close results like these aren't fully resolved by either signal alone.
 
 ---
 
@@ -40,8 +38,9 @@ That negative-result pattern is the point of this repo: knowing when a technique
 | Lever | Effect |
 |---|---|
 | **Model choice** (RandomForest → LightGBM) | +~8.7 points balanced accuracy — by far the largest single improvement |
-| **Hyperparameter tuning** (Optuna, 20 trials) | +~0.0005–0.0006 — small, real, and repeatable, confirmed on both CV and leaderboard |
-| Ensembling, feature engineering, pseudo-labeling, missing-value strategy | No reliable gain over the tuned LightGBM baseline — each tested honestly via out-of-fold validation, not eyeballed |
+| **Hyperparameter tuning** (Optuna, 20 trials) | +~0.0005–0.0006 over baseline LightGBM — small, real, and repeatable |
+| **Feature engineering** (v6) | Ended up the best submission (0.95020), despite a flat result in local OOF testing |
+| Ensembling, pseudo-labeling, missing-value strategy | Scored competitively (0.94966–0.95000) but did not clearly beat v3/v6 — all differences here are small enough to sit within normal CV/LB noise for this competition |
 
 ### What the data itself revealed
 
@@ -107,9 +106,9 @@ student-health-risk-kaggle/
 | `v2_lightgbm_baseline.ipynb` | Swaps RandomForest for LightGBM with native categorical handling |
 | `v3_lightgbm_optuna_tuned.ipynb` | Optuna hyperparameter search + 5-fold CV — **best result** |
 | `v4_catboost.ipynb` | CatBoost (GPU), saves OOF + test probabilities for ensembling |
-| `v5_ensemble_lightgbm_catboost.ipynb` | Blends v3 + v4 via OOF-validated weight search |
-| `v6_feature_engineering.ipynb` | Adds missingness flags + ratio/interaction features |
-| `v7_pseudo_labeling.ipynb` | Adds confident test predictions as extra training data |
+| `v5_ensemble_lightgbm_catboost.ipynb` | Blends v3 + v4 via OOF-validated weight search — LB 0.94995 |
+| `v6_feature_engineering.ipynb` | Adds missingness flags + ratio/interaction features — **LB 0.95020, best result** |
+| `v7_pseudo_labeling.ipynb` | Adds confident test predictions as extra training data — LB 0.95000 |
 | `v8_native_missing_prior_correction.ipynb` | Native NaN handling + class-prior probability correction |
 
 > Notebooks are self-contained and were run on Kaggle. Run them in order to reproduce the full progression, or jump straight to `v3` for the best single result.
